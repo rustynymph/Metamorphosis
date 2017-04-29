@@ -1,28 +1,27 @@
 import SimpleOpenNI.*; // For interfacing with the Kinect
-import processing.opengl.*; // For implementing edge detection
 import codeanticode.syphon.*; // For using syphon to send frames out
 
 SimpleOpenNI kinect;
 SyphonServer server;
-PImage kinectImage;
-boolean sendFrames = false;
-color[] userClr = new color[]{ color(255,0,0),
-                               color(0,255,0),
-                               color(0,0,255),
-                               color(255,255,0),
-                               color(255,0,255),
-                               color(0,255,255)
-                              };
-PVector com = new PVector();                                   
-PVector com2d = new PVector(); 
-PVector leftHandPos = new PVector();
-PVector rightHandPos = new PVector();
+boolean sendFrames   = false;
+color[] userClr      = new color[]{
+                         color(255,0,0),
+                         color(0,255,0),
+                         color(0,0,255),
+                         color(255,255,0),
+                         color(255,0,255),
+                         color(0,255,255)};
+PVector com                 = new PVector();                                   
+PVector com2d               = new PVector(); 
+PVector currentUserCom      = new PVector(); 
+PVector currentUserCom2d    = new PVector();
+int[] jointNames            = new int[15]; // the joint names are integer constants
 
-int currentUser; // kinect can track multiple users, but we only want to focus on one
+int currentUser, oldCurrentUser; // kinect can track multiple users, but we only want to focus on one
+int currentPhaseIndex;
+PImage eggImg, caterpillarImg, chrysalisImg, butterflyImg, leafImg;
 LifecyclePhase eggPhase, caterpillarPhase, chrysalisPhase, butterflyPhase;
 LifecyclePhase[] lifecyclePhases = new LifecyclePhase[4];
-int currentPhaseIndex;
-PImage eggImg, caterpillarImg, chrysalisImg, butterflyImg;
 
 void settings(){
   size(640, 480, P2D);
@@ -37,59 +36,94 @@ void setup(){
      return;  
   }
   
+  kinect.setMirror(true);
   kinect.enableDepth();
   kinect.enableUser();
   server = new SyphonServer(this, "Kinect Processing");
   
-  eggImg = loadImage("egg.png");
-  caterpillarImg = loadImage("caterpillar.png");
-  chrysalisImg = loadImage("chrysalis.gif");
-  butterflyImg = loadImage("butterfly.png");
+  eggImg             = loadImage("monarch-egg.png");
+  caterpillarImg     = loadImage("monarch-caterpillar.png");
+  chrysalisImg       = loadImage("monarch-chrysalis.png");
+  butterflyImg       = loadImage("monarch-butterfly.png");
+  leafImg            = loadImage("leaf.png");
+  eggImg.resize(400, 450);
+  caterpillarImg.resize(150, 500);
+  chrysalisImg.resize(400, 450);
+  butterflyImg.resize(450, 400);
+  leafImg.resize(150, 150);
   
-  eggPhase = new EggPhase(eggImg);
-  caterpillarPhase = new CaterpillarPhase(caterpillarImg);
-  chrysalisPhase = new ChrysalisPhase(chrysalisImg);
-  butterflyPhase = new ButterflyPhase(butterflyImg);
+  eggPhase           = new EggPhase();
+  caterpillarPhase   = new CaterpillarPhase();
+  chrysalisPhase     = new ChrysalisPhase();
+  butterflyPhase     = new ButterflyPhase();
   lifecyclePhases[0] = eggPhase;
   lifecyclePhases[1] = caterpillarPhase;
   lifecyclePhases[2] = chrysalisPhase;
   lifecyclePhases[3] = butterflyPhase;
-  
-  currentPhaseIndex = -1;
+  currentPhaseIndex  = -1;
+  currentUser        = -1;
 }
 
 void draw(){
+  clear();
   fill(255);
   kinect.update();
-  //image(kinect.userImage(), 0, 0, width, height);
+  image(kinect.userImage(), 0, 0, width, height);
   drawUsers();
-  drawLifecycleText();
+  if (currentUser != -1){
+    if (currentPhaseIndex != -1){
+      lifecyclePhases[currentPhaseIndex].display();
+      lifecyclePhases[currentPhaseIndex].showText();
+      lifecyclePhases[currentPhaseIndex].detectGesture(currentUser);
+    } else {
+      text("Be an egg.", width/2, 30);
+      detectCrouchingBallPosition(currentUser);
+    }
+  }
     
   if (sendFrames){
     server.sendScreen();
   }
 }
 
-int phaseDetection(){
-  float highestProbability = 0.0;
-  int index = -1;
-  for (int i = 0; i < 4; i++){
-    float probability = lifecyclePhases[i].detectGestureProbability();
-    if (probability >= highestProbability){
-      highestProbability = probability;
-      index = i;
+void detectCrouchingBallPosition(int userId){
+  boolean insideBallArea = false;
+  int eggDiameterX       = 300;
+  int eggDiameterY       = 450;  
+  int innerDiameterX     = 100;
+  int innerDiameterY     = 200;
+  int innerRadiusX       = innerDiameterX/2;
+  int innerRadiusY       = innerDiameterY/2;
+  kinect.getCoM(userId, currentUserCom);  
+  kinect.convertRealWorldToProjective(currentUserCom, currentUserCom2d);
+  noFill();
+  stroke(255, 0, 0);
+  ellipse(width/2, height-50, eggDiameterX, eggDiameterY);
+  ellipse(width/2, height-50, innerDiameterX, innerDiameterY);
+  fill(255);
+  ellipse(currentUserCom2d.x, currentUserCom2d.y, 10, 10);
+  ellipse(width/2, height-50-innerRadiusY, 5, 5);
+  ellipse(width/2, height-50+innerRadiusY, 5, 5);
+  ellipse(width/2-innerRadiusX, height-50, 5, 5);
+  ellipse(width/2+innerRadiusX, height-50, 5, 5);
+  //println("User ID: " + userId + " COM: " + currentUserCom);
+  if ((currentUserCom2d.x <= width/2 + innerRadiusX)
+       &&  (currentUserCom2d.x >= width/2 - innerRadiusX) 
+         && (currentUserCom2d.y <= (height-50) + innerRadiusY)
+           && (currentUserCom2d.y >= (height-50) - innerRadiusY)){
+           insideBallArea = true;
+           println("MinX: " + (width/2-innerRadiusX) + " MaxX: " + (width/2+innerRadiusX));
+           println("MinY: " + (height-50-innerRadiusY) + " MaxY: " + (height-50+innerRadiusY));
+           println("ComX: " + currentUserCom2d.x + " ComY: " + currentUserCom2d.y);
     }
+  
+  if (insideBallArea == true){
+    currentPhaseIndex = 0;
+  } else {
+    println("false");
   }
-  return index;
 }
 
-void drawLifecycleText(){
-  if (currentPhaseIndex != -1){
-    lifecyclePhases[currentPhaseIndex].showText();
-  } else {
-     text("Be an egg.", width/2, 30);
-  }
-}
 
 void drawUsers(){
   // draw the skeleton if it's available
@@ -97,10 +131,7 @@ void drawUsers(){
   for(int i=0;i<userList.length;i++){
     if(kinect.isTrackingSkeleton(userList[i])){
       stroke(userClr[ (userList[i] - 1) % userClr.length ] );
-      drawSkeleton(userList[i]);
-      
-      kinect.getJointPositionSkeleton(userList[i], SimpleOpenNI.SKEL_LEFT_HAND, leftHandPos);
-      kinect.getJointPositionSkeleton(userList[i], SimpleOpenNI.SKEL_RIGHT_HAND, rightHandPos);      
+      drawSkeleton(userList[i]);    
     }      
         
     // draw the center of mass
@@ -143,19 +174,39 @@ void drawSkeleton(int userId){
   kinect.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_KNEE, SimpleOpenNI.SKEL_RIGHT_FOOT);  
 }
 
-
-// SimpleOpenNI events
+void populateJointNamesArray(){
+  jointNames[0]  = SimpleOpenNI.SKEL_HEAD;
+  jointNames[1]  = SimpleOpenNI.SKEL_NECK;
+  jointNames[2]  = SimpleOpenNI.SKEL_LEFT_SHOULDER;
+  jointNames[3]  = SimpleOpenNI.SKEL_LEFT_ELBOW;
+  jointNames[4]  = SimpleOpenNI.SKEL_LEFT_HAND;
+  jointNames[5]  = SimpleOpenNI.SKEL_RIGHT_SHOULDER;
+  jointNames[6]  = SimpleOpenNI.SKEL_RIGHT_ELBOW;
+  jointNames[7]  = SimpleOpenNI.SKEL_RIGHT_HAND;
+  jointNames[8]  = SimpleOpenNI.SKEL_TORSO;
+  jointNames[9]  = SimpleOpenNI.SKEL_LEFT_HIP;
+  jointNames[10] = SimpleOpenNI.SKEL_LEFT_KNEE;
+  jointNames[11] = SimpleOpenNI.SKEL_LEFT_FOOT;
+  jointNames[12] = SimpleOpenNI.SKEL_RIGHT_HIP;
+  jointNames[13] = SimpleOpenNI.SKEL_RIGHT_KNEE;
+  jointNames[14] = SimpleOpenNI.SKEL_RIGHT_FOOT;
+}
 
 void onNewUser(SimpleOpenNI curContext, int userId){
   println("onNewUser - userId: " + userId);
-  println("\tstart tracking skeleton"); 
   curContext.startTrackingSkeleton(userId);
+  currentUser = userId;
 }
 
 void onLostUser(SimpleOpenNI curContext, int userId){
-  println("onLostUser - userId: " + userId);
+  if (currentUser == userId){
+    oldCurrentUser = currentUser;
+    currentUser = -1;
+  }
 }
 
 void onVisibleUser(SimpleOpenNI curContext, int userId){
-  //println("onVisibleUser - userId: " + userId);
+  if (currentUser == -1 && oldCurrentUser == userId){
+    currentUser = userId;
+  }
 }
