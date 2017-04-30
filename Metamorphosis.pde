@@ -37,6 +37,7 @@ void setup(){
   }
   
   kinect.setMirror(true);
+  kinect.enableRGB();
   kinect.enableDepth();
   kinect.enableUser();
   server = new SyphonServer(this, "Kinect Processing");
@@ -68,8 +69,10 @@ void draw(){
   clear();
   fill(255);
   kinect.update();
-  image(kinect.userImage(), 0, 0, width, height);
+  //image(kinect.userImage(), 0, 0, width, height);
+  image(kinect.rgbImage(), 0, 0, width, height);
   drawUsers();
+  updateCurrentUser();
   if (currentUser != -1){
     if (currentPhaseIndex != -1){
       lifecyclePhases[currentPhaseIndex].display();
@@ -84,6 +87,27 @@ void draw(){
   if (sendFrames){
     server.sendScreen();
   }
+}
+
+/* what happens if one user walks away and another user shows up?
+or if there are 2 users at a time how do we choose one to track? */
+void updateCurrentUser(){
+  int closestUser = -1;
+  float closestComDepth = 10000;
+  PVector userCom = new PVector();
+  int[] userList = kinect.getUsers();
+  println(userList.length);
+  for(int i=0; i < userList.length; i++){
+    if(kinect.isTrackingSkeleton(userList[i])){ 
+      kinect.getCoM(userList[i], userCom);
+      println("UserCom.z: " + userCom.z + " closestComDepth: " + closestComDepth);
+      if (userCom.z <= closestComDepth){
+        closestComDepth = userCom.z;
+        closestUser = userList[i];
+      }
+    }
+  }
+  currentUser = closestUser;
 }
 
 void detectCrouchingBallPosition(int userId){
@@ -122,16 +146,16 @@ void detectCrouchingBallPosition(int userId){
 
 void drawUsers(){
   // draw the skeleton if it's available
-  /*int[] userList = kinect.getUsers();
-  for(int i=0;i<userList.length;i++){
+  int[] userList = kinect.getUsers();
+  for(int i=0; i < userList.length; i++){
     if(kinect.isTrackingSkeleton(userList[i])){
-      stroke(userClr[ (userList[i] - 1) % userClr.length ] );
+      stroke(userClr[ (userList[i] - 1) % userClr.length ]);
       drawSkeleton(userList[i]);    
     }      
         
     // draw the center of mass
-    if(kinect.getCoM(userList[i],com)){
-      kinect.convertRealWorldToProjective(com,com2d);
+    if(kinect.getCoM(userList[i], com)){
+      kinect.convertRealWorldToProjective(com, com2d);
       stroke(100,255,0);
       strokeWeight(1);
       beginShape(LINES);
@@ -139,39 +163,22 @@ void drawUsers(){
       vertex(com2d.x,com2d.y + 5); 
       vertex(com2d.x - 5,com2d.y);
       vertex(com2d.x + 5,com2d.y);
-      endShape();    
-      fill(0,255,100);
-      text(Integer.toString(userList[i]),com2d.x,com2d.y);
+      endShape();
+      if (currentUser == userList[i]){
+        fill(255,0,100);
+        text("Current user: " + Integer.toString(userList[i]), com2d.x, com2d.y);
+      } else {
+        fill(0,255,100);
+        text(Integer.toString(userList[i]), com2d.x, com2d.y);
       }
-    }  */
-    if(kinect.isTrackingSkeleton(currentUser)){
-      stroke(userClr[(currentUser-1) % userClr.length ] );
-      drawSkeleton(currentUser);    
-    }      
-        
-    // draw the center of mass
-    if(kinect.getCoM(currentUser, com)){
-      kinect.convertRealWorldToProjective(com,com2d);
-      stroke(100, 255, 0);
-      strokeWeight(1);
-      beginShape(LINES);
-      vertex(com2d.x, com2d.y - 5);
-      vertex(com2d.x, com2d.y + 5); 
-      vertex(com2d.x - 5, com2d.y);
-      vertex(com2d.x + 5, com2d.y);
-      endShape();    
-      fill(0,255,100);
-      text(Integer.toString(currentUser), com2d.x, com2d.y);
-      }    
+      
+      }
+    }    
     
 }
 
 // draw the skeleton with the selected joints
 void drawSkeleton(int userId){
-  /*
-  PVector jointPos = new PVector();
-  context.getJointPositionSkeleton(userId,SimpleOpenNI.SKEL_NECK,jointPos);
-  */
   kinect.drawLimb(userId, SimpleOpenNI.SKEL_HEAD, SimpleOpenNI.SKEL_NECK);
   kinect.drawLimb(userId, SimpleOpenNI.SKEL_NECK, SimpleOpenNI.SKEL_LEFT_SHOULDER);
   kinect.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_SHOULDER, SimpleOpenNI.SKEL_LEFT_ELBOW);

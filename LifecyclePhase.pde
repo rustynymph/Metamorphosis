@@ -93,6 +93,27 @@ class ChrysalisPhase extends LifecyclePhase{
   }  
   
   void detectGesture(int userId){
+     PVector leftHandPos    = new PVector();
+     PVector leftHandPos2d  = new PVector();
+     PVector rightHandPos   = new PVector();
+     PVector rightHandPos2d = new PVector();
+     kinect.getJointPositionSkeleton(userId, SimpleOpenNI.SKEL_LEFT_HAND, leftHandPos);  
+     kinect.getJointPositionSkeleton(userId, SimpleOpenNI.SKEL_RIGHT_HAND, rightHandPos); 
+     kinect.convertRealWorldToProjective(leftHandPos, leftHandPos2d);
+     kinect.convertRealWorldToProjective(rightHandPos, rightHandPos2d);
+     PVector centerOfChrysalis = new PVector();
+     centerOfChrysalis.x = width/2;
+     centerOfChrysalis.y = height/2;
+     if ((rightHandPos2d.x >= centerOfChrysalis.x+chrysalisImg.width/2+5) ||
+          (rightHandPos2d.x <= centerOfChrysalis.x-chrysalisImg.width/2-5) ||
+           (rightHandPos2d.y >= centerOfChrysalis.y+chrysalisImg.height/2) ||
+            (rightHandPos2d.y <= centerOfChrysalis.y-chrysalisImg.height/2-5) ||
+             (leftHandPos2d.x >= centerOfChrysalis.x+chrysalisImg.width/2+5) ||
+              (leftHandPos2d.x <= centerOfChrysalis.x-chrysalisImg.width/2-5) ||
+               (leftHandPos2d.y >= centerOfChrysalis.y+chrysalisImg.height/2+5) ||
+                (leftHandPos2d.y <= centerOfChrysalis.y-chrysalisImg.height/2-5)){
+        currentPhaseIndex = 3; 
+     }    
   }
   
   void display(){
@@ -112,6 +133,10 @@ class ButterflyPhase extends LifecyclePhase{
   }  
   
   void detectGesture(int userId){ // detect that use is flapping their arms
+  }
+  
+  void display(){
+    image(butterflyImg, width/2-butterflyImg.width/2, height/2-butterflyImg.height/2);
   }
   
 }
