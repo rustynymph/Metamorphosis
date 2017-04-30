@@ -29,14 +29,14 @@ class EggPhase extends LifecyclePhase{
      PVector centerOfEgg = new PVector();
      centerOfEgg.x = width/2;
      centerOfEgg.y = height/2;
-     if ((rightHandPos2d.x >= centerOfEgg.x+eggImg.width/2+20) ||
-          (rightHandPos2d.x <= centerOfEgg.x-eggImg.width/2-20) ||
-           (rightHandPos2d.y >= centerOfEgg.y+eggImg.height/2+20) ||
-            (rightHandPos2d.y <= centerOfEgg.y-eggImg.height/2-20) ||
-             (rightHandPos2d.x >= centerOfEgg.x+eggImg.width/2+20) ||
-              (rightHandPos2d.x <= centerOfEgg.x-eggImg.width/2-20) ||
-               (rightHandPos2d.y >= centerOfEgg.y+eggImg.height/2+20) ||
-                (rightHandPos2d.y <= centerOfEgg.y-eggImg.height/2-20)){
+     if ((rightHandPos2d.x >= centerOfEgg.x+eggImg.width/2+5) ||
+          (rightHandPos2d.x <= centerOfEgg.x-eggImg.width/2-5) ||
+           (rightHandPos2d.y >= centerOfEgg.y+eggImg.height/2) ||
+            (rightHandPos2d.y <= centerOfEgg.y-eggImg.height/2-5) ||
+             (leftHandPos2d.x >= centerOfEgg.x+eggImg.width/2+5) ||
+              (leftHandPos2d.x <= centerOfEgg.x-eggImg.width/2-5) ||
+               (leftHandPos2d.y >= centerOfEgg.y+eggImg.height/2+5) ||
+                (leftHandPos2d.y <= centerOfEgg.y-eggImg.height/2-5)){
         currentPhaseIndex = 1; 
      }
   }
@@ -77,7 +77,7 @@ class CaterpillarPhase extends LifecyclePhase{
     kinect.getCoM(currentUser, currentUserCom);  
     kinect.convertRealWorldToProjective(currentUserCom, currentUserCom2d);    
     image(caterpillarImg, currentUserCom2d.x-caterpillarImg.width/2, currentUserCom2d.y-caterpillarImg.height/2);
-    image(leafImg, width-leafImg.width, leafImg.height);
+    image(leafImg, width-leafImg.width, 0);
   }   
   
 }

@@ -112,22 +112,17 @@ void detectCrouchingBallPosition(int userId){
          && (currentUserCom2d.y <= (height-50) + innerRadiusY)
            && (currentUserCom2d.y >= (height-50) - innerRadiusY)){
            insideBallArea = true;
-           println("MinX: " + (width/2-innerRadiusX) + " MaxX: " + (width/2+innerRadiusX));
-           println("MinY: " + (height-50-innerRadiusY) + " MaxY: " + (height-50+innerRadiusY));
-           println("ComX: " + currentUserCom2d.x + " ComY: " + currentUserCom2d.y);
     }
   
   if (insideBallArea == true){
     currentPhaseIndex = 0;
-  } else {
-    println("false");
   }
 }
 
 
 void drawUsers(){
   // draw the skeleton if it's available
-  int[] userList = kinect.getUsers();
+  /*int[] userList = kinect.getUsers();
   for(int i=0;i<userList.length;i++){
     if(kinect.isTrackingSkeleton(userList[i])){
       stroke(userClr[ (userList[i] - 1) % userClr.length ] );
@@ -148,7 +143,27 @@ void drawUsers(){
       fill(0,255,100);
       text(Integer.toString(userList[i]),com2d.x,com2d.y);
       }
-    }  
+    }  */
+    if(kinect.isTrackingSkeleton(currentUser)){
+      stroke(userClr[(currentUser-1) % userClr.length ] );
+      drawSkeleton(currentUser);    
+    }      
+        
+    // draw the center of mass
+    if(kinect.getCoM(currentUser, com)){
+      kinect.convertRealWorldToProjective(com,com2d);
+      stroke(100, 255, 0);
+      strokeWeight(1);
+      beginShape(LINES);
+      vertex(com2d.x, com2d.y - 5);
+      vertex(com2d.x, com2d.y + 5); 
+      vertex(com2d.x - 5, com2d.y);
+      vertex(com2d.x + 5, com2d.y);
+      endShape();    
+      fill(0,255,100);
+      text(Integer.toString(currentUser), com2d.x, com2d.y);
+      }    
+    
 }
 
 // draw the skeleton with the selected joints
